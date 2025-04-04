@@ -50,7 +50,7 @@ def is_select_query(query: str) -> bool:
     clean_query = clean_query.strip()
 
     # 检查是否以SELECT开头且不包含数据修改语句
-    is_select = re.match(r"^\s*SELECT", clean_query, re.IGNORECASE) is not None
+    is_select = re.match(r"^\s*(SELECT|WITH)", clean_query, re.IGNORECASE) is not None
     has_modifying = (
         re.search(
             r"\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|GRANT|REVOKE)\b",
@@ -69,7 +69,8 @@ def get_tables():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT 
                 table_name, 
                 (SELECT count(*) FROM information_schema.columns 
@@ -77,7 +78,8 @@ def get_tables():
             FROM information_schema.tables t
             WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
             ORDER BY table_name
-        """)
+        """
+        )
         tables = cursor.fetchall()
         return list(tables)
     finally:
@@ -162,12 +164,14 @@ def get_database_info():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 (SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public') as table_count,
                 pg_size_pretty(pg_database_size(current_database())) as database_size,
                 version() as postgres_version
-        """)
+        """
+        )
         info = cursor.fetchone()
         return dict(info)
     finally:
